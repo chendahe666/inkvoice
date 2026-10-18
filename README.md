@@ -2,11 +2,22 @@
 
 **在本机把语音转成文字，再写入当前应用。**
 
-InkVoice is an open-source Windows x64 dictation prototype with local CPU speech recognition and optional bring-your-own-key Gemini text processing.
+InkVoice is an open-source dictation project: a Windows desktop release, with Linux desktop and native Android/iOS keyboard previews under development.
 
 ![InkVoice 语音输入界面](docs/images/inkvoice.png)
 
-墨声使用 Electron、whisper.cpp 和多语言 Whisper 模型。默认在 CPU 上完成识别，不需要云端账户；可选的 Gemini 整理和翻译由你提供自己的 API 密钥（BYOK）。当前为 **0.1.1 未签名原型**，只支持 Windows x64。
+桌面版使用 Electron、whisper.cpp 和多语言 Whisper 模型。默认在 CPU 上完成识别，不需要云端账户；桌面可选的 Gemini 整理和翻译由你提供自己的 API 密钥（BYOK）。可下载的 **v0.1.1 是 Windows x64 未签名预览版**；主分支正在加入跨平台预览，不代表各平台已经完成真机验证。
+
+## 跨平台预览
+
+| 平台 | 实现与使用方式 | 说明 |
+|---|---|---|
+| Windows x64 | 全局快捷键、本地 Whisper、前台窗口写入 | [下载 v0.1.1](https://github.com/chendahe666/inkvoice/releases/tag/v0.1.1) |
+| Linux x64 | 桌面录音、本地 Whisper；X11 输入助手，Wayland 手动复制 | [构建与限制](docs/LINUX.md) |
+| Android | 原生系统键盘，键盘内录音，本机 Whisper，直接提交当前输入框 | [Android 工程](mobile/android) |
+| iPhone | 原生系统键盘；主 App 开启 5/15 分钟会话后，键盘内连续听写 | [iOS 会话、构建与验证](docs/IOS.md) |
+
+iPhone 首版使用系统支持的本机语音识别，强制禁止云端识别回退；可用语言取决于设备和系统资源。会话期间麦克风持续激活，未开始听写的音频立即丢弃；到期、来电或强退后需要重新开启。首次系统授权与重新建立录音会话是两件事。手机预览暂不包含桌面的 Gemini 整理、词典和历史功能，不能当作完整 Typeless 替代品。
 
 ## 已实现
 
@@ -25,7 +36,7 @@ InkVoice is an open-source Windows x64 dictation prototype with local CPU speech
 2. 完整解压到可写目录，运行其中的 `InkVoice.exe`。
 3. 在“设置”中选择麦克风并保存，即可录音。
 
-便携版无需 Node.js。请保留整个文件夹，不能只复制单个 exe。发布页同时提供 `SHA256SUMS` 用于核对下载文件；当前版本为预发布原型。
+便携版无需 Node.js。请保留整个文件夹，不能只复制单个 exe。发布页同时提供 `SHA256SUMS.txt` 用于核对下载文件；当前版本为预发布原型。
 
 **从源码运行：** 需要 Windows x64、Node.js **22.12.0 或更高版本**、npm、PowerShell 和 Windows .NET Framework x64 C# 编译器。在下载或克隆的项目目录中执行：
 
@@ -52,9 +63,9 @@ npm start
 | Gemini 请求 | 仅主动选择“整理”或“翻译”时发送转写文字及词表；不发送音频或屏幕内容。 |
 | API 密钥 | 由主进程使用；系统加密可用时才加密保存，不写入源码。也可使用 `GEMINI_API_KEY` 环境变量。 |
 
-便携版的 `data` 位于 exe 旁，开发版位于项目根目录。**不要分享自己的 `data` 文件夹**：它可能包含私人文字、配置和加密凭据。仅配置密钥或环境变量不会自动开启云端处理。Gemini 的可用模型、额度和费用由你的账户决定。
+Windows 便携版的 `data` 位于 exe 旁，Windows 开发版位于项目根目录。Linux 使用标准用户配置目录；密钥环不可用时拒绝持久保存 API key。**不要分享个人数据文件夹**：它可能包含私人文字、配置和加密凭据。仅配置密钥或环境变量不会自动开启云端处理。Gemini 的可用模型、额度和费用由你的账户决定。移动端存储边界见各平台说明。
 
-本应用不采集屏幕或光标附近的文字。复制操作会把文字写入系统剪贴板；自动输入通过 Windows 输入接口完成。更多边界见 [安全说明](SECURITY.md)。
+桌面版不采集屏幕或光标附近的文字。复制操作会把文字写入系统剪贴板；桌面自动输入通过对应系统输入接口完成。手机键盘使用当前输入连接检查是否仍处于同一个编辑会话，不上传宿主输入框内容。更多边界见 [安全说明](SECURITY.md)。
 
 ## 当前限制
 
@@ -62,7 +73,7 @@ npm start
 - 默认模型较小，准确率受语言、口音、噪声和硬件影响；未建立日常听写准确率基准。
 - 自动写入取决于窗口焦点、权限和编辑器兼容性，管理员窗口或特殊应用可能不接受输入。
 - 云端整理可能改变措辞；失败时保留本地转写，并暂停该次自动写入。
-- 尚无 macOS / Linux / iOS 版本、账户同步、开机启动、签名安装器或自动更新。
+- 尚无 macOS 版本、账户同步、开机启动、签名安装器或自动更新。Linux 和手机预览的验证范围见平台文档；iOS 仍需 Mac/Xcode 和签名真机验证。
 
 这是独立实现的原型，不宣称与任何商业语音输入产品在质量或兼容性上等效。
 

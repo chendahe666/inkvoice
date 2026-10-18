@@ -65,10 +65,14 @@ function runProcess(exe,args,{input,signal,timeoutMs=300000,cwd}={}){
     child.stdin.on('error',()=>{});if(input!==undefined)child.stdin.end(input);else child.stdin.end();
   });
 }
-function engineStatus(root,settings={}){
-  const exe=path.join(root,'runtime','whisper','whisper-cli.exe');const model=settings.modelPath||path.join(root,'models','ggml-base-q5_1.bin');
-  const exeOk=fs.existsSync(exe),modelOk=fs.existsSync(model)&&fs.statSync(model).isFile();
-  return {ready:exeOk&&modelOk,modelName:path.basename(model),modelBytes:modelOk?fs.statSync(model).size:0,reason:!exeOk?'识别引擎未准备好':!modelOk?'找不到语音模型':null,exe,model};
+function enginePaths(root,settings={},platform=process.platform){
+  return {exe:path.join(root,'runtime','whisper',platform==='win32'?'whisper-cli.exe':'whisper-cli'),model:settings.modelPath||path.join(root,'models','ggml-base-q5_1.bin')};
+}
+function engineStatus(root,settings={},platform=process.platform){
+  const {exe,model}=enginePaths(root,settings,platform);let exeOk=false,modelOk=false,modelBytes=0,executable=true;
+  try{exeOk=fs.statSync(exe).isFile();if(exeOk&&platform==='linux')fs.accessSync(exe,fs.constants.X_OK);}catch{executable=false;}
+  try{const info=fs.statSync(model);modelOk=info.isFile()&&info.size>0;modelBytes=modelOk?info.size:0;}catch{}
+  return {ready:exeOk&&executable&&modelOk,modelName:path.basename(model),modelBytes,reason:!exeOk?'识别引擎未准备好':!executable?'识别引擎没有执行权限，请运行 Linux 设置脚本。':!modelOk?'找不到语音模型':null,exe,model};
 }
 async function transcribeWave(buffer,{root,dataDir,settings=DEFAULT_SETTINGS,signal}={}){
   const info=inspectWave(buffer);if(info.durationSeconds<0.25)throw Error('录音太短，请至少说一句话。');if(info.durationSeconds>300.5)throw Error('单次录音最长 5 分钟。');if(info.rms<0.0008)throw Error('音频几乎没有声音，请检查麦克风。');
@@ -102,4 +106,4 @@ async function refineText(text,{settings,key,signal,fetchImpl=globalThis.fetch}=
   return {text:refined.trim(),polishMs:Date.now()-started,mode:settings.polishMode};
 }
 function newResult(transcription,extra={}){return {id:crypto.randomUUID(),createdAt:new Date().toISOString(),...transcription,...extra};}
-module.exports={DEFAULT_SETTINGS,sanitizeSettings,dictionaryPairs,cleanText,inspectWave,runProcess,engineStatus,transcribeWave,refineText,newResult,ensureDir,readJson,writeJson};
+module.exports={DEFAULT_SETTINGS,sanitizeSettings,dictionaryPairs,cleanText,inspectWave,runProcess,enginePaths,engineStatus,transcribeWave,refineText,newResult,ensureDir,readJson,writeJson};

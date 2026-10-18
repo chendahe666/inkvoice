@@ -1,6 +1,6 @@
 # 安装与构建
 
-当前目标平台为 **Windows x64**。浅色桌面界面不代表已支持 macOS；本机输入助手和构建流程均使用 Windows 接口。
+本文介绍 **Windows x64 v0.1.1**。跨平台开发预览分别见 [Linux](LINUX.md)、[Android](../mobile/android/README.md) 和 [iOS](IOS.md)。浅色桌面界面不代表已支持 macOS。
 
 ## 使用便携版
 

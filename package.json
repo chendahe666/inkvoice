@@ -1,26 +1,38 @@
 {
   "name": "inkvoice",
   "productName": "InkVoice",
-  "version": "0.1.1",
-  "description": "墨声：本地优先的 Windows 语音输入",
+  "version": "0.2.0-preview.1",
+  "description": "墨声：本地优先的跨平台语音输入",
   "main": "src/main.cjs",
   "private": true,
   "license": "MIT",
-  "engines": { "node": ">=22.12.0" },
-  "repository": { "type": "git", "url": "https://github.com/chendahe666/inkvoice.git" },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chendahe666/inkvoice.git"
+  },
   "homepage": "https://github.com/chendahe666/inkvoice#readme",
-  "bugs": { "url": "https://github.com/chendahe666/inkvoice/issues" },
+  "bugs": {
+    "url": "https://github.com/chendahe666/inkvoice/issues"
+  },
   "scripts": {
     "start": "electron .",
     "smoke": "electron . --smoke-test",
-    "check": "npm run check:source && npm run check:controller && npm run check:windows",
+    "check": "npm run check:source && npm run check:controller && npm run check:windows && npm run check:linux",
     "test": "npm run check",
     "check:source": "node scripts/check-source.cjs",
     "check:controller": "node scripts/check-controller.cjs",
     "check:windows": "node scripts/check-window-startup.cjs",
     "check:native": "node scripts/check-native.cjs",
     "audit:public": "node scripts/audit-publication.cjs",
-    "package": "node scripts/package.cjs"
+    "package": "node scripts/package.cjs",
+    "package:linux": "node scripts/package-linux.cjs",
+    "check:linux": "node scripts/check-linux.cjs && node scripts/check-platform.cjs"
   },
-  "devDependencies": { "electron": "44.9.0" }
+  "devDependencies": {
+    "electron": "44.9.0"
+  },
+  "desktopName": "org.inkvoice.InkVoice.desktop"
 }

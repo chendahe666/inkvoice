@@ -1,0 +1,31 @@
+name: Source and iOS build checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm run check
+  ios:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build native iOS app and keyboard for Simulator
+        shell: bash
+        run: |
+          if [[ ! -f mobile/ios/project.yml ]]; then
+            echo 'iOS source is not present on this revision.'
+            exit 0
+          fi
+          command -v xcodegen || brew install xcodegen
+          cd mobile/ios
+          xcodegen generate
+          xcodebuild -project InkVoice.xcodeproj -scheme InkVoice -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build

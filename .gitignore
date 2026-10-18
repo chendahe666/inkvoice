@@ -49,3 +49,19 @@ __pycache__/
 *.pyc
 .DS_Store
 Thumbs.db
+
+# Mobile build products, device data and local signing material
+.gradle/
+.cxx/
+**/build/
+**/local.properties
+*.jks
+*.keystore
+*.mobileprovision
+*.ipa
+*.apk
+*.aab
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcodeproj/

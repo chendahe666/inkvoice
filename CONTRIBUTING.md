@@ -1,6 +1,6 @@
 # 贡献指南
 
-欢迎改进墨声的本地识别、输入兼容性、界面和文档。当前维护目标为 Windows x64 原型；跨平台支持需要对应的运行时、输入方案与真实平台验证。
+欢迎改进墨声的本地识别、输入兼容性、界面和文档。Windows 发布版、Linux 桌面预览和 Android/iOS 原生键盘分别保留平台构建流程；跨平台支持需要真实平台验证。
 
 ## 准备环境
 
@@ -16,13 +16,14 @@
 npm run check
 ```
 
-默认检查会依次执行以下三项，也可以分别运行：
+默认检查会依次执行以下项目，也可以分别运行：
 
 | 命令 | 验证范围 |
 |---|---|
 | `npm run check:source` | 当前仓库脚本、静态契约与基础逻辑。 |
 | `npm run check:controller` | 使用模拟依赖的录音、取消、编辑、历史和文字处理控制流程。 |
 | `npm run check:windows` | 使用模拟 Electron 的窗口启动、恢复及单实例控制。 |
+| `npm run check:linux` | Linux 引擎路径、执行权限、用户目录、Python 助手分派及密钥环保存策略的模拟检查。 |
 
 这些检查不需要既有 `evidence`、模型、Electron 启动、真实麦克风、前台窗口输入或云端接口。模拟窗口检查不证明真实桌面的显示与焦点行为；控制器检查也不证明听写准确率。
 
@@ -45,6 +46,14 @@ npm run smoke
 - 人工听写和真实目标应用中的体验检查。
 
 只有完成的检查才写入验证结果；不要把单个样例通过描述为准确率、质量等效或所有应用兼容。
+
+## 手机与 Linux
+
+[Android](mobile/android/README.md) 使用原生 Kotlin IME、JNI 和 whisper.cpp；[iOS](mobile/ios/README.md) 使用主 App 加系统键盘扩展。Android 的 JVM 单元测试不等于手机录音验证；iOS 的 `swift test` 仅验证 Foundation 协议，不构建 UIKit、音频或扩展。
+
+Linux 的运行时、真实识别和 X11 自有窗口输入分别见 [Linux 说明](docs/LINUX.md)。Wayland、物理麦克风、不同桌面环境和系统密钥环需要单独验收。
+
+[GitHub Actions 配置模板](docs/ci-check.yml) 只请求仓库读取权限，运行 Node 源码检查和 macOS Simulator 编译。维护者需有工作流写入权限，将其保存为 `.github/workflows/check.yml` 后启用；配置存在不代表某次运行已经通过。
 
 ## 提交变更
 

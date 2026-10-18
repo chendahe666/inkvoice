@@ -5,8 +5,10 @@ const service=require('./services.cjs');
 const root=path.resolve(__dirname,'..');
 const smoke=process.argv.includes('--smoke-test'),captureSmoke=process.argv.includes('--capture-smoke'),testMode=smoke||captureSmoke;
 const evidenceDir=process.env.INKVOICE_EVIDENCE_DIR||path.join(root,'evidence');
-const dataDir=testMode?path.join(evidenceDir,'smoke-profile'):(process.env.INKVOICE_DATA_DIR||path.join(app.isPackaged?path.dirname(process.execPath):root,'data'));
-service.ensureDir(dataDir);app.setPath('userData',dataDir);app.setName('InkVoice');
+app.setName('InkVoice');
+const dataDir=testMode?path.join(evidenceDir,'smoke-profile'):(process.env.INKVOICE_DATA_DIR||(process.platform==='linux'?app.getPath('userData'):path.join(app.isPackaged?path.dirname(process.execPath):root,'data')));
+service.ensureDir(dataDir);app.setPath('userData',dataDir);
+if(process.platform==='linux'){app.setDesktopName('org.inkvoice.InkVoice.desktop');app.commandLine.appendSwitch('enable-features','GlobalShortcutsPortal');}
 if(captureSmoke){app.commandLine.appendSwitch('use-fake-device-for-media-stream');app.commandLine.appendSwitch('use-fake-ui-for-media-stream');app.commandLine.appendSwitch('use-file-for-fake-audio-capture',path.join(root,'fixtures','dictation-en.wav'));}
 const configFile=path.join(dataDir,'settings.json'),historyFile=path.join(dataDir,'history.json');
 let stored=service.readJson(configFile,{}),settings=service.sanitizeSettings(stored.settings);
@@ -16,8 +18,9 @@ let state={phase:'idle',result:null,error:null,warning:null};
 let mainWindow,overlayWindow,tray,quitting=false,activeSession=null,abortController=null,overlayTimer,recordingTimer;
 let startingRecording=false,startGeneration=0,importDialogOpen=false;
 let hotkeys={recordingRegistered:false,pasteRegistered:false};
-const helper=path.join(root,'native','bin','InkVoice.Input.exe');
-function apiKey(){if(stored.encryptedKey){try{if(safeStorage.isEncryptionAvailable())return safeStorage.decryptString(Buffer.from(stored.encryptedKey,'base64'));}catch{}}return process.env.GEMINI_API_KEY||'';}
+const helper=process.platform==='linux'?path.join(root,'native','linux-input.py'):path.join(root,'native','bin','InkVoice.Input.exe');
+function secureKeyStorage(){return safeStorage.isEncryptionAvailable()&&(process.platform!=='linux'||!['basic_text','unknown'].includes(safeStorage.getSelectedStorageBackend?.()||'unknown'));}
+function apiKey(){if(stored.encryptedKey){try{if(secureKeyStorage())return safeStorage.decryptString(Buffer.from(stored.encryptedKey,'base64'));}catch{}}return process.env.GEMINI_API_KEY||'';}
 function snapshot(){const e=service.engineStatus(root,settings);return {...state,settings:{...settings},engine:{ready:e.ready,modelName:e.modelName,modelBytes:e.modelBytes,reason:e.reason},history,providers:{geminiKeyAvailable:!!apiKey(),keySource:stored.encryptedKey?'saved':process.env.GEMINI_API_KEY?'environment':'none'},hotkeys:{...hotkeys}};}
 function send(channel,payload){for(const win of [mainWindow,overlayWindow])if(win&&!win.isDestroyed())win.webContents.send(channel,payload);}
 function publish(patch={}){Object.assign(state,patch);send('inkvoice:state',snapshot());updateOverlay();}
@@ -40,9 +43,9 @@ function showWindow(reason='manual'){
 }
 function persist(){service.writeJson(configFile,{settings,encryptedKey:stored.encryptedKey||null});}
 function saveHistory(result){if(!settings.keepHistory)return;history=[result,...history.filter(x=>x.id!==result.id)].slice(0,30);service.writeJson(historyFile,history);}
-async function native(args,input,signal){if(!fs.existsSync(helper))throw Error('文字输入助手缺失，请重新构建应用。');const r=await service.runProcess(helper,args,{input,signal,timeoutMs:6000});try{return JSON.parse(r.stdout.trim().replace(/^\uFEFF/,''));}catch{throw Error('输入助手没有返回有效结果。');}}
+async function native(args,input,signal){if(!fs.existsSync(helper))throw Error('文字输入助手缺失，请重新构建应用。');const r=await service.runProcess(process.platform==='linux'?'python3':helper,process.platform==='linux'?[helper,...args]:args,{input,signal,timeoutMs:6000});try{return JSON.parse(r.stdout.trim().replace(/^\uFEFF/,''));}catch{throw Error('输入助手没有返回有效结果。');}}
 async function foreground(){try{const target=await native(['--foreground']);return target.pid===process.pid?null:target;}catch{return null;}}
-async function insertText(text,target,signal){if(!target?.handle)return {status:'held',message:'回到目标窗口后，按 Ctrl+Alt+V 写入最近结果。'};try{const r=await native(['--insert','--target',String(target.handle)],text,signal);if(r.ok)return {status:'inserted',message:'已写入目标窗口。'};if(r.count>0)return {status:'partial',message:'已写入部分文字，随后被中断。请检查目标窗口，避免重复写入。',insertedUnits:r.count,reason:r.reason};return {status:'held',message:r.reason==='focus-changed'?'目标窗口已切换；回到需要的位置，按 Ctrl+Alt+V。':'自动写入未完成，可以复制结果或按 Ctrl+Alt+V 重试。',reason:r.reason};}catch{return {status:'held',message:'自动写入未完成，可以复制结果。'};}}
+async function insertText(text,target,signal){if(!target?.handle)return {status:'held',message:process.platform==='linux'?'未定位到可自动写入的 X11 窗口，请复制结果后粘贴。Wayland 使用手动复制。':'回到目标窗口后，按 Ctrl+Alt+V 写入最近结果。'};try{const r=await native(['--insert','--target',String(target.handle)],text,signal);if(r.ok)return {status:'inserted',message:'已写入目标窗口。'};if(r.count>0||r.partial)return {status:'partial',message:'已写入部分文字，随后被中断。请检查目标窗口，避免重复写入。',insertedUnits:r.count,reason:r.reason};return {status:'held',message:r.reason==='focus-changed'?'目标窗口已切换；回到需要的位置，按 Ctrl+Alt+V。':process.platform==='linux'?'自动写入不可用，请复制结果后粘贴。':'自动写入未完成，可以复制结果或按 Ctrl+Alt+V 重试。',reason:r.reason};}catch{return {status:'held',message:'自动写入未完成，可以复制结果。'};}}
 async function beginRecording(){
   if(startingRecording||importDialogOpen||['recording','transcribing','polishing'].includes(state.phase))return;
   const engine=service.engineStatus(root,settings);if(!engine.ready){publish({phase:'error',error:engine.reason});return;}
@@ -71,7 +74,7 @@ function configureIPC(){
   handle('inkvoice:audio',payload=>{if(!payload||payload.sessionId!==activeSession?.id||state.phase!=='transcribing')return {ok:false};const buffer=Buffer.from(payload.wav);if(buffer.length>20000000)throw Error('录音文件过大。');void processAudio(buffer,{sessionId:payload.sessionId,target:activeSession.target});return {ok:true};});
   handle('inkvoice:recording-error',payload=>{if(payload?.sessionId===activeSession?.id){clearTimeout(recordingTimer);activeSession=null;publish({phase:'error',error:String(payload.message||'无法使用麦克风。').slice(0,500)});}});
   handle('inkvoice:settings',patch=>{if(['recording','transcribing','polishing'].includes(state.phase))return {ok:false,message:'请在当前录音处理结束后修改设置。'};const next=service.sanitizeSettings({...settings,...patch}),previous=settings;if(next.hotkey==='Ctrl+Alt+V')return {ok:false,message:'此快捷键用于写入最近结果，请选另一个。'};if(next.hotkey!==settings.hotkey){registerHotkeys(next.hotkey);if(!hotkeys.recordingRegistered){registerHotkeys(previous.hotkey);return {ok:false,message:'快捷键已被占用或格式无效。'};}}settings=next;if(!settings.keepHistory){history=[];service.writeJson(historyFile,[]);}persist();publish();return {ok:true};});
-  handle('inkvoice:key',key=>{if(typeof key!=='string'||key.length>1000)return {ok:false,message:'密钥格式无效。'};if(key.trim()){if(!safeStorage.isEncryptionAvailable())return {ok:false,message:'系统加密不可用，密钥未保存。'};stored.encryptedKey=safeStorage.encryptString(key.trim()).toString('base64');}else stored.encryptedKey=null;persist();publish();return {ok:true};});
+  handle('inkvoice:key',key=>{if(typeof key!=='string'||key.length>1000)return {ok:false,message:'密钥格式无效。'};if(key.trim()){if(!secureKeyStorage())return {ok:false,message:'系统密钥环不可用，密钥未保存。请启动 Secret Service/KWallet 后重试，或使用临时环境变量。'};stored.encryptedKey=safeStorage.encryptString(key.trim()).toString('base64');}else stored.encryptedKey=null;persist();publish();return {ok:true};});
   handle('inkvoice:copy',text=>{if(typeof text==='string'&&text.length<=200000)clipboard.writeText(text);return {ok:true};});
   handle('inkvoice:update-draft',payload=>{if(['recording','transcribing','polishing'].includes(state.phase))return {ok:false,message:'正在处理，请完成后再修改文字。'};if(!state.result||payload?.id!==state.result.id||typeof payload.text!=='string'||payload.text.length>200000)return {ok:false,message:'结果已更新，请重新选择要修改的文字。'};state.result={...state.result,text:payload.text};saveHistory(state.result);return {ok:true};});
   handle('inkvoice:select-result',id=>{if(['recording','transcribing','polishing'].includes(state.phase))return {ok:false,message:'请先完成当前录音。'};const item=history.find(x=>x.id===id);if(!item)return {ok:false,message:'找不到这条记录。'};publish({phase:'ready',result:item,error:null,warning:item.warning||null});return {ok:true};});

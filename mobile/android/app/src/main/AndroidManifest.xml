@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-feature android:name="android.hardware.microphone" android:required="true" />
+    <application
+        android:label="墨声键盘"
+        android:icon="@drawable/ic_inkvoice"
+        android:theme="@style/AppTheme"
+        android:allowBackup="false"
+        android:usesCleartextTraffic="false"
+        android:supportsRtl="true">
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <service
+            android:name=".InkVoiceImeService"
+            android:label="墨声本地语音键盘"
+            android:permission="android.permission.BIND_INPUT_METHOD"
+            android:exported="true">
+            <intent-filter><action android:name="android.view.InputMethod" /></intent-filter>
+            <meta-data android:name="android.view.im" android:resource="@xml/input_method" />
+        </service>
+    </application>
+</manifest>
