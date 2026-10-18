@@ -13,11 +13,13 @@ InkVoice is an open-source dictation project: a Windows desktop release, with Li
 | 平台 | 实现与使用方式 | 说明 |
 |---|---|---|
 | Windows x64 | 全局快捷键、本地 Whisper、前台窗口写入 | [下载 v0.1.1](https://github.com/chendahe666/inkvoice/releases/tag/v0.1.1) |
-| Linux x64 | 桌面录音、本地 Whisper；X11 输入助手，Wayland 手动复制 | [构建与限制](docs/LINUX.md) |
-| Android | 原生系统键盘，键盘内录音，本机 Whisper，直接提交当前输入框 | [Android 工程](mobile/android) |
+| Linux x64 | 桌面录音、本地 Whisper；X11 输入助手，Wayland 手动复制 | [Ubuntu 24.04+ 预览](https://github.com/chendahe666/inkvoice/releases/tag/v0.2.0-preview.1) · [构建与限制](docs/LINUX.md) |
+| Android | 原生系统键盘，键盘内录音，本机 Whisper，直接提交当前输入框 | [ARM64 APK 预览](https://github.com/chendahe666/inkvoice/releases/tag/v0.2.0-preview.1) · [Android 工程](mobile/android) |
 | iPhone | 原生系统键盘；主 App 开启 5/15 分钟会话后，键盘内连续听写 | [iOS 会话、构建与验证](docs/IOS.md) |
 
 iPhone 首版使用系统支持的本机语音识别，强制禁止云端识别回退；可用语言取决于设备和系统资源。会话期间麦克风持续激活，未开始听写的音频立即丢弃；到期、来电或强退后需要重新开启。首次系统授权与重新建立录音会话是两件事。手机预览暂不包含桌面的 Gemini 整理、词典和历史功能，不能当作完整 Typeless 替代品。
+
+已执行的构建、测试与未验证项见 [验证记录](docs/VALIDATION.md)。
 
 ## 已实现
 
@@ -73,7 +75,7 @@ Windows 便携版的 `data` 位于 exe 旁，Windows 开发版位于项目根目
 - 默认模型较小，准确率受语言、口音、噪声和硬件影响；未建立日常听写准确率基准。
 - 自动写入取决于窗口焦点、权限和编辑器兼容性，管理员窗口或特殊应用可能不接受输入。
 - 云端整理可能改变措辞；失败时保留本地转写，并暂停该次自动写入。
-- 尚无 macOS 版本、账户同步、开机启动、签名安装器或自动更新。Linux 和手机预览的验证范围见平台文档；iOS 仍需 Mac/Xcode 和签名真机验证。
+- 尚无 macOS 版本、账户同步、开机启动、签名安装器或自动更新。Linux 和手机预览的验证范围见平台文档；iOS 已通过 Simulator 编译，仍需签名安装及 iPhone 真机验证。
 
 这是独立实现的原型，不宣称与任何商业语音输入产品在质量或兼容性上等效。
 

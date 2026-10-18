@@ -8,9 +8,11 @@ const evidenceDir=process.env.INKVOICE_EVIDENCE_DIR||path.join(root,'evidence');
 app.setName('InkVoice');
 const dataDir=testMode?path.join(evidenceDir,'smoke-profile'):(process.env.INKVOICE_DATA_DIR||(process.platform==='linux'?app.getPath('userData'):path.join(app.isPackaged?path.dirname(process.execPath):root,'data')));
 service.ensureDir(dataDir);app.setPath('userData',dataDir);
+if(process.platform==='linux'){const stat=fs.lstatSync(dataDir);if(stat.isSymbolicLink()||!stat.isDirectory())throw Error('InkVoice 用户数据目录必须是独立的真实目录。');fs.chmodSync(dataDir,0o700);}
 if(process.platform==='linux'){app.setDesktopName('org.inkvoice.InkVoice.desktop');app.commandLine.appendSwitch('enable-features','GlobalShortcutsPortal');}
 if(captureSmoke){app.commandLine.appendSwitch('use-fake-device-for-media-stream');app.commandLine.appendSwitch('use-fake-ui-for-media-stream');app.commandLine.appendSwitch('use-file-for-fake-audio-capture',path.join(root,'fixtures','dictation-en.wav'));}
 const configFile=path.join(dataDir,'settings.json'),historyFile=path.join(dataDir,'history.json');
+if(process.platform==='linux')for(const file of [configFile,historyFile])if(fs.existsSync(file)){const stat=fs.lstatSync(file);if(stat.isSymbolicLink()||!stat.isFile())throw Error('InkVoice 用户配置不能使用链接或特殊文件。');fs.chmodSync(file,0o600);}
 let stored=service.readJson(configFile,{}),settings=service.sanitizeSettings(stored.settings);
 if(testMode)settings={...settings,autoInsert:false,keepHistory:false};
 let history=settings.keepHistory?service.readJson(historyFile,[]).filter(x=>x&&typeof x.text==='string').slice(0,30):[];
@@ -118,7 +120,7 @@ async function runSmoke(){
   if(settingsFooter.openDataBottom>settingsFooter.saveTop)throw Error('设置保存条遮住了最后一个控件。');
   mainWindow.setSize(900,650);await inspectView('home','ui-compact-preview');
   const hashes=Object.fromEntries(['ui.html','ui.css','renderer.js'].map(file=>[file,crypto.createHash('sha256').update(fs.readFileSync(path.join(__dirname,file))).digest('hex')]));
-  const report={kind:captureSmoke?'fake-device-real-capture-asr-smoke':'desktop-renderer-smoke',at:new Date().toISOString(),rendererReady:true,title:mainWindow.getTitle(),ui,interface:{views,hashes,settingsFooter},engine:snapshot().engine,hotkeys,effectiveHotkey:settings.hotkey,capture,limitations:['Synthetic source for capture smoke; does not prove physical microphone availability','Native insertion is separately tested against our own Windows control']};service.writeJson(path.join(evidenceDir,captureSmoke?'capture-smoke.json':'desktop-smoke.json'),report);quitting=true;app.exit(0);
+  const report={kind:captureSmoke?'fake-device-real-capture-asr-smoke':'desktop-renderer-smoke',at:new Date().toISOString(),rendererReady:true,title:mainWindow.getTitle(),ui,interface:{views,hashes,settingsFooter},engine:snapshot().engine,hotkeys,effectiveHotkey:settings.hotkey,capture,limitations:['Synthetic source for capture smoke; does not prove physical microphone availability','Native insertion is separately verified by platform-specific isolated control tests']};service.writeJson(path.join(evidenceDir,captureSmoke?'capture-smoke.json':'desktop-smoke.json'),report);quitting=true;app.exit(0);
 }
 const lock=testMode||app.requestSingleInstanceLock();if(!lock)app.quit();else{app.on('second-instance',()=>showWindow('second-instance'));app.whenReady().then(async()=>{configureIPC();createWindows();registerHotkeys();if(!hotkeys.recordingRegistered){for(const candidate of ['Ctrl+Shift+Space','Ctrl+Alt+F9','Ctrl+Shift+F9']){registerHotkeys(candidate);if(hotkeys.recordingRegistered){settings.hotkey=candidate;persist();break;}}}if(!testMode)createTray();if(testMode)try{await runSmoke();}catch(e){service.ensureDir(evidenceDir);service.writeJson(path.join(evidenceDir,'smoke-error.json'),{error:e.stack});quitting=true;app.exit(1);}}).catch(e=>{console.error(e);app.exit(1);});}
 app.on('before-quit',()=>{quitting=true;clearTimeout(recordingTimer);abortController?.abort();globalShortcut.unregisterAll();});app.on('window-all-closed',()=>{if(testMode||quitting)app.quit();});

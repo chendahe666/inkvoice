@@ -13,6 +13,8 @@ Use Linux x86_64 with Node 22.12+ (Node 24 LTS recommended), Python 3, `curl`,
 `build-essential cmake curl python3 unzip` using your normal package manager.
 Electron additionally needs the distribution's GTK, NSS, GBM and ALSA runtime
 libraries and a graphical desktop. The scripts do not install system packages.
+Install a CJK font such as Ubuntu's `fonts-noto-cjk` if Chinese characters appear
+as boxes on a minimal Linux installation.
 
 ```sh
 npm ci
@@ -58,6 +60,8 @@ changes the clipboard, starts a daemon or requests root. Some applications may
 ignore synthetic input; send success means events were requested, not that every
 editor accepted the text. Interrupted delivery keeps the result visible and may
 report partial/uncertain input; inspect the target before trying again.
+Injection has a short time limit so cancellation remains responsive. Long results
+may stop partway through; use manual copy for a long passage.
 
 If Wayland is detected, the helper refuses injection even when an XWayland DISPLAY
 also exists. Copy the result and paste it yourself. `ydotool`, privileged input
@@ -83,6 +87,11 @@ test, and this preview does not claim Typeless accuracy parity.
 The recorded Ubuntu 24.04 build requires GLIBC 2.38 or newer. Its pinned CLI
 transcribed the public 11-second upstream JFK fixture in about 31 seconds in the
 test WSL environment. This conservative CPU build does not promise realtime speed.
+The packaged Electron app also passed a prerecorded-device capture test and
+transcribed its 11.8-second input in about 23 seconds. A separate Xvfb test inserted
+Chinese, English, a newline and an emoji into our own Tk text control and refused
+a different target. These results do not establish physical microphone access or
+compatibility with arbitrary editors.
 
 Upstream references: [Whisper version](https://github.com/ggml-org/whisper.cpp/releases/tag/v1.9.5),
 [Electron global shortcuts](https://www.electronjs.org/docs/latest/api/global-shortcut),

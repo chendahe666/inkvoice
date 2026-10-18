@@ -37,7 +37,7 @@ struct InkVoiceApp: App {
                         Text("切换输入目标会取消未完成分段。通话、音频设备变化、系统终止或会话到期后，请手动返回此处重新开启。安全输入框和禁止第三方键盘的 App 不支持。")
                     }
                     Section("开发状态") {
-                        Text("原生原型：尚未完成 Xcode/iPhone 真机验收。系统权限提示及语言资源由 iOS 管理。")
+                        Text("原生原型：已通过 Simulator 编译，尚未完成 iPhone 真机验收。系统权限提示及语言资源由 iOS 管理。")
                     }
                 }.navigationTitle("InkVoice")
             }

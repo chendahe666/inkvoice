@@ -22,6 +22,15 @@ set(GGML_CUDA OFF CACHE BOOL "" FORCE)
 set(GGML_VULKAN OFF CACHE BOOL "" FORCE)
 set(GGML_CPU_KLEIDIAI OFF CACHE BOOL "" FORCE)
 set(GGML_CCACHE OFF CACHE BOOL "" FORCE)
+# Apply before FetchContent so upstream ggml/whisper targets inherit the same
+# path policy. Quoted options keep Windows workspace paths with spaces intact.
+# This covers debug info, __FILE__, and compiler-generated source locations.
+add_compile_options(
+    "-ffile-prefix-map=${CMAKE_SOURCE_DIR}=/inkvoice/android/src"
+    "-ffile-prefix-map=${CMAKE_BINARY_DIR}=/inkvoice/android/build"
+    "-fmacro-prefix-map=${CMAKE_SOURCE_DIR}=/inkvoice/android/src"
+    "-fmacro-prefix-map=${CMAKE_BINARY_DIR}=/inkvoice/android/build"
+    "-fdebug-compilation-dir=/inkvoice/android/build")
 include(FetchContent)
 # Same fixed upstream source revision as InkVoice desktop's pinned CPU release.
 FetchContent_Declare(whisper_core

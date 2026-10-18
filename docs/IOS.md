@@ -124,7 +124,16 @@ or repurposed CallKit are used. `UIApplication.shared` appears only in the host 
 ensure session activation begins while foreground. Public APIs and truthful
 recording behavior still require ordinary App Review; no approval is claimed.
 
-## Required iPhone acceptance checks — all pending
+## Completed compile check
+
+The host and keyboard both passed an unsigned arm64/x86_64 iOS Simulator build
+on GitHub's macOS runner. The log contains Swift compilation for both targets and
+`BUILD SUCCEEDED`: [build evidence](https://github.com/chendahe666/inkvoice/actions/runs/39093562728).
+The Foundation test source was not executed by this build-only workflow. This
+does not verify microphone access, background Speech scheduling, signed installation
+or any physical iPhone interaction.
+
+## Required iPhone acceptance checks — device work pending
 
 1. Build both targets with an Apple SDK; confirm correct App Group entitlements,
    extension-safe API compilation, embedded extension, privacy manifests, and
@@ -148,5 +157,6 @@ recording behavior still require ordinary App Review; no approval is claimed.
    transient mailbox cleanup after normal stop and after host termination. Verify
    keyboard TTL behavior under real app switching/load, not only a unit test.
 
-Source implementation is complete for this prototype scope; Apple SDK build,
-signing, real microphone/keyboard execution, and store review are **unverified**.
+Source implementation and the unsigned Simulator compile check are complete for
+this prototype scope. Signing, real microphone/keyboard execution, background
+dictation and store review remain **unverified**.

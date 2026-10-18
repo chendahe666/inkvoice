@@ -6,9 +6,9 @@ const crypto=require('node:crypto');
 const {spawn}=require('node:child_process');
 
 const DEFAULT_SETTINGS=Object.freeze({language:'auto',polishMode:'basic',outputLanguage:'zh-CN',autoInsert:true,keepHistory:true,hotkey:'Ctrl+Alt+Space',microphoneId:'default',modelPath:'',geminiModel:'gemini-3.5-flash-lite',dictionary:''});
-function ensureDir(p){fs.mkdirSync(p,{recursive:true});return p;}
+function ensureDir(p){fs.mkdirSync(p,{recursive:true,mode:0o700});return p;}
 function readJson(file,fallback){try{return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return fallback;}}
-function writeJson(file,value){ensureDir(path.dirname(file));const tmp=file+'.tmp';fs.writeFileSync(tmp,JSON.stringify(value,null,2),'utf8');fs.renameSync(tmp,file);}
+function writeJson(file,value){ensureDir(path.dirname(file));const tmp=file+'.'+crypto.randomUUID()+'.tmp';try{fs.writeFileSync(tmp,JSON.stringify(value,null,2),{encoding:'utf8',mode:0o600,flag:'wx'});fs.renameSync(tmp,file);}finally{if(fs.existsSync(tmp))fs.unlinkSync(tmp);}}
 function sanitizeSettings(input={}){
   const result={...DEFAULT_SETTINGS};
   if(['auto','zh','en','ja','ko','fr','de','es'].includes(input.language))result.language=input.language;
@@ -77,7 +77,9 @@ function engineStatus(root,settings={},platform=process.platform){
 async function transcribeWave(buffer,{root,dataDir,settings=DEFAULT_SETTINGS,signal}={}){
   const info=inspectWave(buffer);if(info.durationSeconds<0.25)throw Error('录音太短，请至少说一句话。');if(info.durationSeconds>300.5)throw Error('单次录音最长 5 分钟。');if(info.rms<0.0008)throw Error('音频几乎没有声音，请检查麦克风。');
   const engine=engineStatus(root,settings);if(!engine.ready)throw Error(engine.reason);
-  const temp=ensureDir(path.join(os.tmpdir(),'InkVoice-audio'));const session=fs.mkdtempSync(path.join(temp,'speech-'));const input=path.join(session,'audio.wav'),output=path.join(session,'result');fs.writeFileSync(input,buffer);
+  // Each job gets a private directory directly below the OS temp root. A shared
+  // fixed parent in /tmp could be owned by another user and block later runs.
+  const session=fs.mkdtempSync(path.join(os.tmpdir(),'InkVoice-audio-'));const input=path.join(session,'audio.wav'),output=path.join(session,'result');fs.writeFileSync(input,buffer);
   const args=['-m',engine.model,'-f',input,'-l',settings.language||'auto','-t',String(Math.max(1,Math.min(6,os.cpus().length-2))),'-ng','-otxt','-oj','-of',output,'-nt'];
   const words=dictionaryPairs(settings.dictionary).map(x=>x.to).join(', ');if(words)args.push('--prompt',words.slice(0,1800));
   const started=Date.now();

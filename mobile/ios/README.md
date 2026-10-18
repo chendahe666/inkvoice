@@ -68,9 +68,13 @@ commands, context leases, result identity and serialization. It does **not** bui
 the iOS app or exercise audio, file coordination, system keyboard callbacks,
 permissions, or background execution. Tests use synthetic strings only.
 
-The repository was authored in Windows. An Apple SDK build, signing, iPhone
-microphone test, cross-app insertion test, and App Review have not been performed.
-Do not describe this source as a tested iPhone application based on protocol tests.
+The repository was authored in Windows. The host and keyboard both passed an
+unsigned iOS Simulator build for arm64 and x86_64 on a GitHub macOS runner:
+[verified build](https://github.com/chendahe666/inkvoice/actions/runs/39093562728).
+This does not install an app on a phone. Signing, physical microphone access,
+background dictation and cross-app insertion on an iPhone, and App Review remain
+unverified. The nine Foundation protocol tests are provided but were not executed
+by that build-only workflow.
 
 See [the iOS architecture and device checklist](../../docs/IOS.md) for lifecycle,
 privacy, public API sources, and required device acceptance checks.
