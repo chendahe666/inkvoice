@@ -1,0 +1,6 @@
+const fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib');
+const size=128,raw=Buffer.alloc((size*4+1)*size);
+for(let y=0;y<size;y++){const row=y*(size*4+1);raw[row]=0;for(let x=0;x<size;x++){const o=row+1+x*4;const dx=Math.max(20-x,0,x-107),dy=Math.max(20-y,0,y-107);const inside=dx*dx+dy*dy<400;const bars=[34,53,76,53,34];let gold=false;for(let b=0;b<5;b++){const left=27+b*16,top=(128-bars[b])/2;if(x>=left&&x<left+9&&y>=top&&y<top+bars[b])gold=true;}const c=gold?[227,189,119]:[36,70,59];raw[o]=c[0];raw[o+1]=c[1];raw[o+2]=c[2];raw[o+3]=inside?255:0;}}
+function crc(buf){let c=0xffffffff;for(const b of buf){c^=b;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xedb88320:0);}return(c^0xffffffff)>>>0;}
+function chunk(type,data){const name=Buffer.from(type),body=Buffer.concat([name,data]),out=Buffer.alloc(12+data.length);out.writeUInt32BE(data.length);body.copy(out,4);out.writeUInt32BE(crc(body),8+data.length);return out;}
+const header=Buffer.alloc(13);header.writeUInt32BE(size);header.writeUInt32BE(size,4);header[8]=8;header[9]=6;const png=Buffer.concat([Buffer.from([137,80,78,71,13,10,26,10]),chunk('IHDR',header),chunk('IDAT',zlib.deflateSync(raw)),chunk('IEND',Buffer.alloc(0))]);fs.writeFileSync(path.resolve(__dirname,'../src/icon.png'),png);console.log('Created original InkVoice icon');

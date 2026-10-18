@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'self'; object-src 'none'; base-uri 'none'">
+  <title>墨声 · InkVoice</title>
+  <link rel="stylesheet" href="ui.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#home" aria-label="InkVoice 语音输入首页">
+        <span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 9v6M9.5 5v14M14 7v10M18.5 10v4"/></svg></span>
+        <span class="brand-name">InkVoice<small>墨声</small></span>
+      </a>
+      <nav aria-label="主导航">
+        <button class="nav-item active" data-view="home"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 10.5v1.5a6.5 6.5 0 0 0 13 0v-1.5M12 18.5V22M8.5 22h7"/></svg><span>语音输入</span></button>
+        <button class="nav-item" data-view="history"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4.5h14v15H5zM8.5 8.5h7M8.5 12h7M8.5 15.5h4"/></svg><span>转写记录</span></button>
+        <button class="nav-item" data-view="settings"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><rect x="8" y="4" width="4" height="6" rx="1.5"/><rect x="14" y="14" width="4" height="6" rx="1.5"/></svg><span>设置</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="engine-status"><span class="status-dot" id="engine-dot"></span><span id="engine-label">检查本地模型</span></div>
+        <p>音频在本机识别</p>
+        <button class="background-button" id="hide-window" title="隐藏窗口，继续使用全局快捷键"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h14v14H5zM8 12h8M12 8v8"/></svg><span>后台运行</span></button>
+        <span class="version-label">InkVoice 0.1.1</span>
+      </div>
+    </aside>
+
+    <main>
+      <section class="view active" id="view-home" aria-labelledby="home-title">
+        <header class="page-header"><div><h1 id="home-title">语音输入</h1><p>录音转为文字，直接写入当前应用。</p></div><button class="secondary-button import-button" id="import-audio"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V3M8 7l4-4 4 4M5 14v6h14v-6"/></svg><span>导入 WAV</span></button></header>
+        <div class="notice" id="notice" role="status" hidden></div>
+
+        <section class="record-card" aria-label="录音控制">
+          <div class="record-info"><h2 id="record-title">准备录音</h2><p id="record-description">使用快捷键开始，结束后自动转为文字。</p><div class="hotkey-line"><kbd>Ctrl</kbd><span>+</span><kbd>Alt</kbd><span>+</span><kbd>Space</kbd><span class="key-caption">开始 / 结束</span></div></div>
+          <div class="record-action"><div class="signal-group"><div class="waveform" id="waveform" aria-hidden="true"></div><span class="record-time" id="record-time">00:00</span></div><button id="record-button" class="record-button" aria-label="开始录音"><svg class="mic-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 10.5v1.5a6.5 6.5 0 0 0 13 0v-1.5M12 18.5V22M8.5 22h7"/></svg><span class="stop-icon" aria-hidden="true"></span><span class="button-spinner" aria-hidden="true"></span><span id="record-label">开始录音</span></button></div>
+        </section>
+
+        <div class="workspace-toolbar"><div class="mode-selector" role="group" aria-label="文字处理方式"><button class="mode-button active" data-mode="basic">原文<span>本地</span></button><button class="mode-button" data-mode="polish">整理<span>云端</span></button><button class="mode-button" data-mode="translate">翻译<span>云端</span></button></div><span class="mode-hint">音频不会上传</span></div>
+        <div class="cloud-note" id="cloud-note" hidden><span>云端模式会将转写文字和词表发送至 Gemini。</span><button class="inline-button" id="cloud-settings">配置 API 密钥</button></div>
+
+        <section class="text-card" aria-label="转写结果">
+          <div class="result-header"><div class="result-tabs" role="tablist" aria-label="查看文字"><button id="tab-final" class="result-tab active" role="tab" aria-selected="true">成文</button><button id="tab-raw" class="result-tab" role="tab" aria-selected="false">原始转写</button></div><span class="result-meta" id="result-meta">暂无结果</span></div>
+          <textarea id="result-text" readonly aria-label="成文" placeholder="录音后，转写文字会显示在这里。" spellcheck="false"></textarea>
+          <div class="result-footer"><span id="insertion-status">录音结束后自动写入原应用</span><div class="result-actions"><button id="retry-polish" class="text-button" hidden>重新整理</button><button id="copy-result" class="secondary-button copy-button" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="12" rx="2"/><path d="M15 8V4H4v12h4"/></svg><span>复制文字</span></button></div></div>
+        </section>
+        <footer class="page-footnote"><span>写入最近结果 <kbd>Ctrl + Alt + V</kbd></span><button id="cancel-job" class="text-button danger" hidden>取消任务</button><span id="privacy-summary">本机识别 · 仅保存文字</span></footer>
+      </section>
+
+      <section class="view" id="view-history" aria-labelledby="history-title" hidden>
+        <header class="page-header"><div><h1 id="history-title">转写记录</h1><p>最近 30 条文字，保存在本机。</p></div><span class="count-label" id="history-count">0 条记录</span></header>
+        <div class="history-toolbar"><span>最近转写</span><button class="text-button danger" id="clear-history">清空记录</button></div>
+        <div id="history-list" class="history-list"></div>
+        <div id="history-empty" class="empty-state"><svg class="empty-icon" viewBox="0 0 48 48" aria-hidden="true"><rect x="12" y="7" width="24" height="34" rx="4"/><path d="M19 17h10M19 24h10M19 31h6"/></svg><h2>暂无转写记录</h2><p>完成录音或导入音频后，文字会保存在这里。</p><button class="secondary-button" id="go-record">开始转写</button></div>
+      </section>
+
+      <section class="view" id="view-settings" aria-labelledby="settings-title" hidden>
+        <header class="page-header"><div><h1 id="settings-title">设置</h1><p>录音、文字处理和本机存储。</p></div></header>
+        <form id="settings-form" class="settings-form">
+          <section class="settings-section" aria-labelledby="recording-settings-title"><h2 id="recording-settings-title">录音与输入</h2><div class="settings-group">
+            <div class="settings-grid"><label class="field">麦克风<select id="setting-microphone"><option value="default">系统默认麦克风</option></select></label><label class="field">识别语言<select id="setting-language"><option value="auto">自动识别</option><option value="zh">中文</option><option value="en">英语</option><option value="ja">日语</option><option value="ko">韩语</option><option value="es">西班牙语</option><option value="fr">法语</option><option value="de">德语</option></select></label></div>
+            <div class="toggle-row"><div><strong>自动写入原应用</strong><p>原应用仍在前台时，将成文写入光标位置。</p></div><label class="switch"><input type="checkbox" id="setting-insert"><span></span><span class="sr-only">自动写入原应用</span></label></div>
+            <label class="field shortcut-field">录音快捷键<select id="setting-hotkey"><option value="Ctrl+Alt+Space">Ctrl + Alt + Space</option><option value="Ctrl+Shift+F9">Ctrl + Shift + F9</option><option value="Ctrl+Alt+R">Ctrl + Alt + R</option><option value="Ctrl+Shift+Space">Ctrl + Shift + Space</option></select><small>如果快捷键被占用，可以在这里更换。</small></label><p class="settings-hint" id="shortcut-status">录音：Ctrl + Alt + Space · 写入：Ctrl + Alt + V</p>
+          </div></section>
+
+          <section class="settings-section" aria-labelledby="dictionary-title"><h2 id="dictionary-title">个人词表</h2><div class="settings-group"><label class="field last-field">姓名和专有名词<textarea id="setting-dictionary" rows="3" placeholder="每行一个词，或写成：识别词 => 正确词"></textarea><small>替换规则在本机执行。启用云端模式后，词表也会发送至 Gemini。</small></label></div></section>
+
+          <section class="settings-section" aria-labelledby="cloud-title"><div class="settings-section-heading"><h2 id="cloud-title">云端整理与翻译</h2><span class="subtle-tag">可选</span></div><div class="settings-group"><p class="settings-description">仅在选择「整理」或「翻译」时使用。转写文字会发送至 Gemini，音频留在本机。</p><div class="settings-grid"><label class="field">Gemini API 密钥<div class="key-input"><input id="setting-api-key" type="password" autocomplete="off" placeholder="输入 API 密钥"><button type="button" id="save-key" class="small-button">保存密钥</button></div><small id="key-status">尚未配置</small></label><label class="field">翻译目标语言<select id="setting-output-language"><option value="zh-CN">简体中文</option><option value="en">English</option><option value="ja">日本語</option><option value="ko">한국어</option><option value="es">Español</option><option value="fr">Français</option><option value="de">Deutsch</option></select></label></div><label class="field last-field">Gemini 模型<input id="setting-gemini-model" type="text" placeholder="gemini-3.5-flash-lite"></label></div></section>
+
+          <section class="settings-section" aria-labelledby="local-title"><h2 id="local-title">模型与存储</h2><div class="settings-group"><label class="field">本地模型路径<input id="setting-model" type="text" placeholder="留空使用随附模型"><small id="model-detail">正在检查模型</small></label><div class="toggle-row"><div><strong>保留文字记录</strong><p>保存最近 30 条。关闭后清空已有记录，不再保存新结果。</p></div><label class="switch"><input type="checkbox" id="setting-history"><span></span><span class="sr-only">保留文字记录</span></label></div><button type="button" id="open-data-folder" class="text-button">打开数据文件夹</button></div></section>
+
+          <div class="settings-actions"><span id="settings-status" role="status">更改后保存设置。</span><button class="primary-button" type="submit">保存设置</button></div>
+        </form>
+      </section>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" hidden></div>
+  <dialog id="confirm-dialog" aria-labelledby="confirm-title"><h2 id="confirm-title">清空转写记录？</h2><p>这会删除保存在本机的全部文字记录。</p><div class="dialog-actions"><button class="secondary-button" id="confirm-no">取消</button><button class="primary-button danger-button" id="confirm-yes">清空记录</button></div></dialog>
+  <script src="renderer.js"></script>
+</body>
+</html>

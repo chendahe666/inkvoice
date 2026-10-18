@@ -1,0 +1,6 @@
+const {contextBridge,ipcRenderer}=require('electron');
+const invoke=(name,...args)=>ipcRenderer.invoke(name,...args);
+const subscribe=(channel,fn)=>{const handler=(_event,value)=>fn(value);ipcRenderer.on(channel,handler);return()=>ipcRenderer.removeListener(channel,handler);};
+contextBridge.exposeInMainWorld('inkvoice',{
+updateDraft:payload=>invoke('inkvoice:update-draft',payload),selectResult:id=>invoke('inkvoice:select-result',id),
+getState:()=>invoke('inkvoice:get-state'),onState:fn=>subscribe('inkvoice:state',fn),onRecordingCommand:fn=>subscribe('inkvoice:recorder',fn),toggleRecording:()=>invoke('inkvoice:toggle'),submitAudio:payload=>invoke('inkvoice:audio',payload),recordingError:payload=>invoke('inkvoice:recording-error',payload),cancel:()=>invoke('inkvoice:cancel'),saveSettings:patch=>invoke('inkvoice:settings',patch),setApiKey:key=>invoke('inkvoice:key',key),importAudio:()=>invoke('inkvoice:import'),copyText:text=>invoke('inkvoice:copy',text),clearHistory:()=>invoke('inkvoice:clear-history'),deleteHistory:id=>invoke('inkvoice:delete-history',id),hideWindow:()=>invoke('inkvoice:hide'),openDataFolder:()=>invoke('inkvoice:open-data'),retryPolish:()=>invoke('inkvoice:retry-polish')});
