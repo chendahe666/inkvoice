@@ -24,10 +24,15 @@ import pathlib
 root = pathlib.Path(__file__).resolve().parent
 target = pathlib.Path(os.environ.get("XDG_DATA_HOME", str(pathlib.Path.home()/".local/share")))/"applications/org.inkvoice.InkVoice.desktop"
 target.parent.mkdir(parents=True, exist_ok=True)
+def desktop_string(value):
+    return str(value).replace("\\", "\\\\").replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t")
 def quote_exec(value):
-    value = str(value).replace("\\", "\\\\").replace('"', '\\"').replace(chr(96), "\\"+chr(96)).replace("$", "\\$").replace("%", "%%")
-    return '"'+value+'"'
-content = "\n".join(["[Desktop Entry]", "Type=Application", "Name=墨声 InkVoice", "Exec="+quote_exec(root/"InkVoice"), "Icon="+str(root/"resources/app/src/icon.png"), "Terminal=false", "Categories=Utility;Audio;"])+"\n"
+    value = str(value)
+    if any(ord(char) < 32 for char in value):
+        raise SystemExit("Move InkVoice to a path without control characters before installing its desktop entry.")
+    value = "".join("\\"+char if char in ('\\', '"', chr(96), '$') else char for char in value).replace("%", "%%")
+    return desktop_string('"'+value+'"')
+content = "\n".join(["[Desktop Entry]", "Type=Application", "Name=墨声 InkVoice", "Exec=/bin/sh "+quote_exec(root/"start-inkvoice.sh"), "Icon="+desktop_string(root/"resources/app/src/icon.png"), "Terminal=false", "Categories=Utility;Audio;"])+"\n"
 target.write_text(content, encoding="utf-8")
 print(target)
 `,{mode:0o755});
